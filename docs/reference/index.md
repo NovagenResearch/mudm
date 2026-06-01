@@ -94,13 +94,14 @@ from mudm.provenance import (
 print(MuDM.__name__, "ready")  # MuDM ready
 ```
 
-!!! tip "Check your version"
-    The reference tracks `mudm` 0.6.0. Confirm what you have installed:
+!!! tip "Check your installed version"
+    This reference tracks the latest `mudm` release. Confirm which version you
+    have installed:
 
     ```python
     import mudm
 
-    print(mudm.__version__)  # 0.6.0
+    print(mudm.__version__)
     ```
 
 ## Processing side: `mudm-tools`

@@ -10,7 +10,7 @@ This quickstart walks you through the four things you do most with `mudm`, end t
 muDM (micro Data Model) is a GeoJSON-inspired data model. Backwards compatibility is a design goal: **any GeoJSON document is valid muDM, and any muDM document is valid GeoJSON.** If you already know GeoJSON, you already know most of muDM.
 
 !!! note "Prerequisites"
-    Make sure `mudm` is installed first — see **[Installation](installation.md)**. The quickest path is `pip install mudm`. Core muDM is pure Python with no compiled component, so there is nothing to build. Every example below runs top-to-bottom against `mudm` 0.6.0.
+    Make sure `mudm` is installed first — see **[Installation](installation.md)**. The quickest path is `pip install mudm`. Core muDM is pure Python with no compiled component, so there is nothing to build. Every example below runs top-to-bottom against the current `mudm`.
 
 !!! note "Two packages, one ecosystem"
     - **`mudm`** — *this* package: the core data model (Pydantic v2). It is pure Python with no compiled component. Provides `mudm.MuDM`, `mudm.model`, `mudm.tilemodel`, `mudm.transforms`, `mudm.layout`, and the provenance models.

@@ -1,8 +1,8 @@
 # Guides
 
 Task-oriented walkthroughs for each part of the `mudm` core data model. Every
-guide is grounded in the real public API and runs top-to-bottom against `mudm`
-0.6.0. Pick the guide that matches what you are trying to do:
+guide is grounded in the real public API and runs top-to-bottom against the
+current `mudm`. Pick the guide that matches what you are trying to do:
 
 | Guide | Use it when you want to… |
 | --- | --- |

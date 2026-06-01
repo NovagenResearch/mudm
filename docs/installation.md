@@ -132,10 +132,10 @@ Save it as `verify_install.py` and run it with your environment of choice:
     python verify_install.py
     ```
 
-Expected output:
+Expected output (the first line shows whichever version you installed):
 
 ```text
-mudm 0.6.0
+mudm <version>
 Model OK: 1 feature(s)
 ```
 

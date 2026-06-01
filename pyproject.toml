@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mudm"
-version = "0.6.0"
+version = "0.6.1"
 description = "muDM (micro Data Model) — a GeoJSON-inspired data model for microscopy spatial data."
 readme = "README.md"
 authors = [
@@ -27,8 +27,10 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/NovagenResearch/mudm"
+Homepage = "https://github.com/NovagenResearch/mudm"
+Documentation = "https://novagenresearch.github.io/mudm/"
 Source = "https://github.com/NovagenResearch/mudm"
+Issues = "https://github.com/NovagenResearch/mudm/issues"
 
 [dependency-groups]
 docs = [

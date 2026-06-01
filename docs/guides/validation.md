@@ -1,6 +1,6 @@
 # Validation
 
-Validate muDM and plain GeoJSON documents with Pydantic, read the errors you get back when something is malformed, and round-trip data to and from JSON. Every example runs top-to-bottom against `mudm` 0.6.0 using the real public API.
+Validate muDM and plain GeoJSON documents with Pydantic, read the errors you get back when something is malformed, and round-trip data to and from JSON. Every example runs top-to-bottom against the current `mudm` using the real public API.
 
 If you are new to the data model, start with the [Getting Started](../getting-started.md) quickstart and the [Specification](../specification.md). For the model classes behind these calls, see the [Core data-model API](../reference/models.md).
 

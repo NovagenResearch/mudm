@@ -1,6 +1,6 @@
 # Examples
 
-A gallery of worked muDM documents. Each example shows the **JSON wire format** and, where it clarifies the API, the **equivalent Python** using the public `mudm` package. Every Python snippet is runnable top to bottom against `mudm` 0.6.0.
+A gallery of worked muDM documents. Each example shows the **JSON wire format** and, where it clarifies the API, the **equivalent Python** using the public `mudm` package. Every Python snippet is runnable top to bottom against the current `mudm`.
 
 !!! note "muDM is GeoJSON"
     Every example here is also valid GeoJSON: standard `Feature` / `FeatureCollection` objects with `type`, `geometry`, and `properties`. muDM only *adds* optional fields (`featureClass`, `parentId`, `ref`, `vocabularies`, `provenance`) and new geometry types (`TIN`, `PolyhedralSurface`). Any GeoJSON document is valid muDM, and any muDM document is valid GeoJSON.
