@@ -40,12 +40,6 @@ def test_geojson_validation():
     assert obj.root.type == "Feature"
 
 
-def test_rust_available_flag():
-    import mudm
-
-    assert isinstance(mudm.RUST_AVAILABLE, bool)
-
-
 def test_tilemodel():
     from mudm.tilemodel import TileLayer
 

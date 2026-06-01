@@ -66,6 +66,21 @@ def geometry_bounds(geom: Any) -> Bounds | None:
         except (ValueError, IndexError):
             return None
 
+    # GeometryCollection — union of its children's bounds
+    if hasattr(geom, "geometries"):
+        child = [geometry_bounds(g) for g in geom.geometries]
+        child = [b for b in child if b is not None]
+        if not child:
+            return None
+        return (
+            min(b[0] for b in child),
+            min(b[1] for b in child),
+            min(b[2] for b in child),
+            max(b[3] for b in child),
+            max(b[4] for b in child),
+            max(b[5] for b in child),
+        )
+
     # GeoJSON types with .coordinates
     if not hasattr(geom, "coordinates"):
         return None
@@ -92,7 +107,9 @@ def _row_layout(
     n = len(bounds)
     widths = [(b[3] - b[0]) if b else 0.0 for b in bounds]  # xmax - xmin
     max_width = max(widths) if widths else 0.0
-    gap = spacing if spacing > 0 else max_width * 0.2
+    # Auto gap: 20% of the widest feature, or 1.0 when all features are
+    # zero-width (e.g. Points) so they don't collapse onto each other.
+    gap = spacing if spacing > 0 else (max_width * 0.2 if max_width > 0 else 1.0)
 
     offsets: list[Offset3] = [(0.0, 0.0, 0.0)] * n
     cursor = bounds[0][3] if bounds[0] else gap  # xmax of first feature
@@ -121,8 +138,23 @@ def _grid_layout(
 ) -> list[Offset3]:
     """Place features on a uniform grid that wraps X -> Y -> Z.
 
-    ``grid_max_x/y/z`` give the number of cells per axis directly.
+    ``grid_max_x/y/z`` give the number of cells per axis directly. X is the
+    primary wrap axis: ``grid_max_x`` must be set whenever ``grid_max_y`` or
+    ``grid_max_z`` is used.
     """
+    for axis_name, axis_val in (
+        ("grid_max_x", grid_max_x),
+        ("grid_max_y", grid_max_y),
+        ("grid_max_z", grid_max_z),
+    ):
+        if axis_val is not None and axis_val < 1:
+            raise ValueError(f"{axis_name} must be >= 1, got {axis_val}")
+    if grid_max_x is None and (grid_max_y is not None or grid_max_z is not None):
+        raise ValueError(
+            "grid_max_x must be set when grid_max_y or grid_max_z is used "
+            "(X is the primary wrap axis)."
+        )
+
     # Bounds format: (xmin, ymin, zmin, xmax, ymax, zmax)
     widths = [(b[3] - b[0]) if b else 0.0 for b in bounds]
     heights = [(b[4] - b[1]) if b else 0.0 for b in bounds]
@@ -265,6 +297,12 @@ def apply_layout(
             continue
 
         if feat.geometry is None:
+            new_features.append(feat)
+            continue
+
+        # Skip geometries we cannot measure (e.g. tiled meshes with no inline
+        # coordinates): leave them untranslated rather than crashing.
+        if geometry_bounds(feat.geometry) is None:
             new_features.append(feat)
             continue
 

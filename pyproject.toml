@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mudm"
-version = "0.5.0"
+version = "0.6.0"
 description = "muDM (micro Data Model) — a GeoJSON-inspired data model for microscopy spatial data."
 readme = "README.md"
 authors = [
-    { name = "Bengt Ljungquist", email = "bengt.ljungquist@nih.gov" },
+    { name = "Bengt Ljungquist", email = "bengt.ljungquist@ngrf.org" },
 ]
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.14"
@@ -16,6 +16,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 keywords = ["json", "microscopy", "mudm", "spatial-data", "geojson"]
 dependencies = [
@@ -27,8 +30,21 @@ dependencies = [
 Documentation = "https://github.com/NovagenResearch/mudm"
 Source = "https://github.com/NovagenResearch/mudm"
 
+[dependency-groups]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
+]
+test = [
+    "pytest>=8",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+mudm = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/"]
