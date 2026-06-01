@@ -1,7 +1,11 @@
 dist/
 build/
+site/
 *.egg-info/
 **/*.egg-info/
 **/__pycache__/
 *.pyc
 .venv/
+
+# Private Claude Code context (managed as separate subrepo)
+.claude/

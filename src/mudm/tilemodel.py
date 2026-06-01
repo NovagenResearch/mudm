@@ -1,7 +1,7 @@
-from typing import List, Optional, Union, Dict, Literal
+from typing import Annotated, List, Optional, Union, Dict, Literal
 from enum import StrEnum
 from pydantic import BaseModel, AnyUrl, conlist, RootModel
-from pydantic import StrictStr
+from pydantic import Field, StrictStr, field_validator, model_validator
 from pathlib import Path
 
 from .model import Vocabulary
@@ -134,20 +134,58 @@ class Scale(CoordinateTransformation):
     scale: List[float]
 
 
+# A discriminated union of the concrete OME-aligned transforms that may appear
+# in a serialized ``coordinateTransformations`` list. Typing the field against
+# the (field-less) ``CoordinateTransformation`` base would make Pydantic drop
+# each element's payload to ``{}`` on serialization; the discriminator on
+# ``type`` preserves the concrete data through model_dump/validate round-trips.
+# ``AffineTransform`` (mudm.transforms) is intentionally NOT included: the
+# TileJSON wire form permits only identity/scale/translation here, and importing
+# it would create a circular import (transforms imports tilemodel).
+CoordinateTransform = Annotated[
+    Union[Identity, Translation, Scale],
+    Field(discriminator="type"),
+]
+
+
 class Multiscale(BaseModel):
     """A coordinate system for MuDM coordinates
 
     Args:
         axes (List[Axis]): The axes of the coordinate system
-        coordinateTransformations (Optional[List[CoordinateTransformation]]):
-            A list of coordinate transformations
-        transformationMatrix (Optional[List[List[float]]):
-            The transformation matrix
+        coordinateTransformations (Optional[List[CoordinateTransform]]):
+            A list of coordinate transformations (identity/translation/scale).
+        transformationMatrix (Optional[List[List[float]]]):
+            A single transformation matrix. Mutually exclusive with
+            ``coordinateTransformations``; rows must all be the same length.
     """
 
     axes: List[Axis]
-    coordinateTransformations: Optional[List[CoordinateTransformation]] = None
+    coordinateTransformations: Optional[List[CoordinateTransform]] = None
     transformationMatrix: Optional[List[List[float]]] = None
+
+    @field_validator("transformationMatrix")
+    @classmethod
+    def _validate_rectangular(
+        cls, v: Optional[List[List[float]]]
+    ) -> Optional[List[List[float]]]:
+        if v is not None and len({len(row) for row in v}) > 1:
+            raise ValueError(
+                "transformationMatrix rows must all have the same length"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def _exclusive_transforms(self):
+        if (
+            self.coordinateTransformations is not None
+            and self.transformationMatrix is not None
+        ):
+            raise ValueError(
+                "Multiscale must not set both coordinateTransformations and "
+                "transformationMatrix; choose one."
+            )
+        return self
 
 
 class TileModel(BaseModel):

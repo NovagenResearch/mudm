@@ -38,19 +38,38 @@ def _iter_positions(coords: list) -> list[Position]:
     return result
 
 
-def _bbox3d(coords: list) -> Tuple[float, float, float, float, float, float]:
-    """Compute 3D bounding box from nested coordinate arrays."""
+def _z(p) -> float:
+    """Z of a position, defaulting to 0.0 for 2D positions."""
+    return float(p[2]) if len(p) > 2 else 0.0
+
+
+def _bbox3d(
+    coords: list,
+) -> Optional[Tuple[float, float, float, float, float, float]]:
+    """Compute 3D bounding box from nested coordinate arrays.
+
+    Returns None when there are no positions (e.g. an empty face). 2D
+    positions are treated as having ``z = 0.0``.
+    """
     positions = _iter_positions(coords)
+    if not positions:
+        return None
     xs = [p[0] for p in positions]
     ys = [p[1] for p in positions]
-    zs = [p[2] for p in positions]
+    zs = [_z(p) for p in positions]
     return (min(xs), min(ys), min(zs), max(xs), max(ys), max(zs))
 
 
-def _centroid3d(coords: list) -> Tuple[float, float, float]:
-    """Compute centroid of unique 3D positions from nested coordinate arrays."""
+def _centroid3d(coords: list) -> Optional[Tuple[float, float, float]]:
+    """Compute centroid of unique 3D positions from nested coordinate arrays.
+
+    Returns None when there are no positions. 2D positions are treated as
+    having ``z = 0.0``.
+    """
     positions = _iter_positions(coords)
-    unique = list({(float(p[0]), float(p[1]), float(p[2])) for p in positions})
+    if not positions:
+        return None
+    unique = list({(float(p[0]), float(p[1]), _z(p)) for p in positions})
     n = len(unique)
     return (
         sum(p[0] for p in unique) / n,
@@ -206,16 +225,21 @@ class MuDMFeature(Feature):
 
     Args:
         geometry (Optional[GeometryType]): Extended geometry supporting 3D types
-        multiscale (Optional[Multiscale]): The coordinate system of the feature
         ref (Optional[Union[StrictStr, StrictInt]]):
-            A reference to the parent feature
+            A reference to an external resource holding the feature's data,
+            e.g. a store/file URI ("s3://bucket/array.zarr") or an external
+            record id. Distinct from ``parentId`` (which links features).
         parentId (Optional[Union[StrictStr, StrictInt]]):
-            A reference to the parent feature
+            A reference to the parent feature this feature belongs to.
         featureClass (Optional[str]): The class of the feature
+        vocabularies (Optional[Union[Dict[str, Vocabulary], str]]):
+            Inline vocabularies (property name -> Vocabulary) or a string
+            reference (URI) to an external vocabulary document.
     """
 
     # Override geometry to accept MuDM 3D types in addition to GeoJSON types
     geometry: Union[GeometryType, None]  # type: ignore[assignment]
+    # reference to an external resource (store/file URI or external record id)
     ref: Optional[Union[StrictStr, StrictInt]] = None
     # reference to the parent feature
     parentId: Optional[Union[StrictStr, StrictInt]] = None
@@ -233,10 +257,7 @@ class MuDMFeatureCollection(FeatureCollection):
         features (List[MuDMFeature]): Features with extended 3D geometry support
         properties (Optional[Props]): The properties of the feature collection
         id (Optional[Union[StrictStr, StrictInt]]): The ID of the feature coll.
-        provenance (Optional[Union[Workflow,
-            WorkflowCollection,
-            Artifact,
-            ArtifactCollection]]): The provenance of the feature collection
+        provenance (Optional[Union[Workflow, WorkflowCollection, Artifact, ArtifactCollection]]): The provenance of the feature collection
     """
 
     # Override features to use MuDMFeature (supports 3D geometry types)
@@ -253,3 +274,23 @@ class MuDM(RootModel):
     """The root object of a MuDM file"""
 
     root: Union[MuDMFeature, MuDMFeatureCollection, GeometryType]  # type: ignore
+
+
+# ---------------------------------------------------------------------------
+# Convenience re-exports
+# ---------------------------------------------------------------------------
+# The coordinate-system models live in ``mudm.tilemodel`` (which imports
+# ``Vocabulary`` from this module). Re-export them here, AFTER all classes are
+# defined, so that ``from mudm.model import Multiscale`` works and the
+# tilemodel<->model import remains acyclic (the package __init__ imports
+# ``model`` before ``tilemodel``).
+from .tilemodel import (  # noqa: E402,F401
+    Multiscale,
+    Axis,
+    AxisType,
+    Unit,
+    CoordinateTransformation,
+    Identity,
+    Translation,
+    Scale,
+)

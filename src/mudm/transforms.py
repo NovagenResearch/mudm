@@ -17,6 +17,7 @@ from geojson_pydantic import (
     MultiLineString,
     Polygon,
     MultiPolygon,
+    GeometryCollection,
 )
 
 from .tilemodel import CoordinateTransformation
@@ -49,6 +50,13 @@ class AffineTransform(CoordinateTransformation):
                 raise ValueError(
                     f"Affine matrix row {i} must have 4 columns, got {len(row)}"
                 )
+        # The bottom row must be [0, 0, 0, 1]: apply_transform only uses rows
+        # 0-2, so a non-identity bottom row (e.g. a projective w-row) would be
+        # silently ignored and produce geometrically wrong results.
+        if any(abs(v[3][j] - e) > 1e-9 for j, e in enumerate((0.0, 0.0, 0.0, 1.0))):
+            raise ValueError(
+                f"Affine matrix bottom row must be [0, 0, 0, 1], got {v[3]}"
+            )
         return v
 
 
@@ -71,7 +79,12 @@ class VoxelCoordinateSystem(BaseModel):
 def _transform_position(
     pos: tuple, matrix: List[List[float]]
 ) -> tuple:
-    """Apply a 4x4 affine matrix to a single position (2D or 3D)."""
+    """Apply a 4x4 affine matrix to a single position (2D or 3D).
+
+    A 2D position is transformed in-plane and stays 2D: the matrix Z row
+    (including any Z translation) is not applied to 2D input. Pass 3D
+    positions if the Z component matters.
+    """
     x = float(pos[0])
     y = float(pos[1]) if len(pos) > 1 else 0.0
     z = float(pos[2]) if len(pos) > 2 else 0.0
@@ -99,17 +112,17 @@ def _transform_coords(coords, matrix: List[List[float]]):
 # ---------------------------------------------------------------------------
 
 def _transform_tin(geom: TIN, matrix: List[List[float]]) -> TIN:
-    """Transform nested polygon coordinates in a TIN."""
+    """Transform nested polygon coordinates in a TIN, preserving `tiles`."""
     new_coords = _transform_coords(list(geom.coordinates), matrix)
-    return TIN(type="TIN", coordinates=new_coords)
+    return geom.model_copy(update={"coordinates": new_coords})
 
 
 def _transform_polyhedral(
     geom: PolyhedralSurface, matrix: List[List[float]]
 ) -> PolyhedralSurface:
-    """Transform nested polygon coordinates in a PolyhedralSurface."""
+    """Transform a PolyhedralSurface's coordinates, preserving `tiles`."""
     new_coords = _transform_coords(list(geom.coordinates), matrix)
-    return PolyhedralSurface(type="PolyhedralSurface", coordinates=new_coords)
+    return geom.model_copy(update={"coordinates": new_coords})
 
 
 # ---------------------------------------------------------------------------
@@ -118,15 +131,17 @@ def _transform_polyhedral(
 
 Geometry = Union[
     Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon,
-    TIN, PolyhedralSurface,
+    GeometryCollection, TIN, PolyhedralSurface,
 ]
 
 
 def apply_transform(geometry: Geometry, transform: AffineTransform) -> Geometry:
     """Apply an affine transform to a geometry, returning a new geometry.
 
-    Supports all GeoJSON geometry types plus MuDM 3D types
-    (TIN, PolyhedralSurface).
+    Supports all GeoJSON geometry types (including GeometryCollection) plus
+    MuDM 3D types (TIN, PolyhedralSurface). For TIN/PolyhedralSurface the
+    ``tiles`` field is preserved, so transforming a tiled (coordinate-less)
+    mesh returns an equivalent tiled mesh rather than raising.
 
     Args:
         geometry: A geometry with 3D coordinates.
@@ -141,6 +156,10 @@ def apply_transform(geometry: Geometry, transform: AffineTransform) -> Geometry:
         return _transform_tin(geometry, matrix)
     if isinstance(geometry, PolyhedralSurface):
         return _transform_polyhedral(geometry, matrix)
+    if isinstance(geometry, GeometryCollection):
+        return geometry.model_copy(update={
+            "geometries": [apply_transform(g, transform) for g in geometry.geometries]
+        })
 
     # GeoJSON types — all have .coordinates
     new_coords = _transform_coords(list(geometry.coordinates), matrix)
@@ -193,7 +212,16 @@ def physical_to_voxel(
     """Convert physical coordinates to voxel coordinates.
 
     Voxel = (physical - origin) / resolution
+
+    Raises:
+        ValueError: if any of the first three resolution components is zero
+            (the conversion would divide by zero).
     """
+    if any(vcs.resolution[i] == 0 for i in range(3)):
+        raise ValueError(
+            "physical_to_voxel requires non-zero resolution components, "
+            f"got {vcs.resolution[:3]}"
+        )
     return (
         (coords[0] - vcs.origin[0]) / vcs.resolution[0],
         (coords[1] - vcs.origin[1]) / vcs.resolution[1],

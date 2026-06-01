@@ -1,8 +1,16 @@
+import glob
 import json
+import os
 import pytest
 from pydantic import ValidationError
 from mudm.tilemodel import TileJSON
-from mudm.fileutils import gather_example_files
+
+
+def gather_example_files(directory):
+    """Return all JSON files under *directory*, recursively (sorted)."""
+    return sorted(
+        glob.glob(os.path.join(directory, "**", "*.json"), recursive=True)
+    )
 
 
 # Define the directories containing the example JSON files

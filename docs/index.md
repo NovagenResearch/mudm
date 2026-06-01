@@ -1,74 +1,81 @@
-# muDM Specification
+# muDM
 
-## Introduction
+**muDM** (micro Data Model) is a GeoJSON-inspired data model for microscopy spatial data — annotations, regions of interest, coordinate systems, and 3D mesh surfaces. It extends GeoJSON with microscopy-specific features while keeping full backwards compatibility: **any GeoJSON document is valid muDM, and any muDM document is valid GeoJSON.** This is the **core data model package**: [Pydantic v2](https://docs.pydantic.dev/) models for validating and serializing muDM documents, built on [geojson-pydantic](https://developmentseed.org/geojson-pydantic/), pure Python with no compiled component.
 
-muDM (micro Data Model) is a data model and format, inspired by [GeoJSON](https://geojson.org), for encoding a variety of data structures related to microscopy images, including reference points, regions of interest, and other annotations. These data structures are represented using the widely adopted JSON format, making it easy to work with in various programming languages and applications. It is fully backwards compatible with the [GeoJSON Specification, RFC 7946](https://datatracker.ietf.org/doc/html/rfc7946), since any GeoJSON also is accepted as muDM. As GeoJSON supports foreign top level properties, a muDM document is also a valid GeoJSON. This specification describes briefly the objects that exist in GeoJSON, and then in more detail describes the additional objects that are part of muDM. For a more detailed description of the GeoJSON objects, please see the [GeoJSON Specification, RFC 7946](https://datatracker.ietf.org/doc/html/rfc7946).
+!!! note "Two packages, one ecosystem"
+    - **`mudm`** — *this* package: the core data model (Pydantic v2). It is pure Python with no compiled component. Provides `mudm.MuDM`, `mudm.model`, `mudm.tilemodel`, `mudm.transforms`, `mudm.layout`, and the provenance models.
+    - **`mudm-tools`** — a **separate package** (import name `mudm_tools`) with the processing pipelines, tiling engines, and format converters, plus an optional Rust acceleration extension `mudm_tools._rs`. Its documentation lives at <https://novagenresearch.github.io/mudm-tools/>.
 
-## Objects
+## Capabilities
 
-### muDM Object
+| Capability | Entry point | Guide |
+|------------|-------------|-------|
+| Validate & serialize muDM / GeoJSON documents | `mudm.MuDM`, `mudm.GeoJSON` | [Getting Started](getting-started.md) · [Validation](guides/validation.md) |
+| Geometry, incl. 3D `TIN` / `PolyhedralSurface` | `mudm.model` (`TIN`, `PolyhedralSurface`, `TiledGeometry`) | [Examples](guides/examples.md) · [Specification](specification.md) |
+| Metadata & properties on features | `mudm.model.MuDMFeature` (`featureClass`, `properties`, `ref`) | [Metadata & Properties](guides/metadata.md) |
+| Ontology vocabularies | `mudm.model.Vocabulary`, `mudm.model.OntologyTerm` | [Ontology Vocabularies](guides/vocabularies.md) |
+| Coordinate transforms (affine, voxel↔physical) | `mudm.transforms` (`AffineTransform`, `VoxelCoordinateSystem`) | [Coordinate Transforms](guides/transforms.md) |
+| Spatial layout (bounds, arranging features) | `mudm.layout` (`geometry_bounds`, `apply_layout`) | [Spatial Layout](guides/layout.md) |
+| Tile & pyramid metadata | `mudm.tilemodel` (`TileJSON`, `TileModel`, `PyramidJSON`) | [Tile Metadata](guides/tiles.md) |
+| Provenance & data lineage | `mudm.provenance` (`Workflow`, `Artifact`, `MuDMLink`) | [Provenance & Traceability](guides/provenance.md) |
 
-A muDM object is a JSON object that represents a geometry, feature, or collection of features, or more precisely, be either of type (having value of top level field `type` as) `"Geometry"`, `"Feature"`, or `"Featurecollection"`, that is, the same as for GeoJSON.
+!!! tip "Where processing happens"
+    Core `mudm` defines and validates the *shape* of the data. To build tile pyramids, convert from Xenium/OBJ/GeoJSON, or export GeoParquet / glTF, reach for the separate **`mudm-tools`** package — see its [documentation site](https://novagenresearch.github.io/mudm-tools/).
 
-A muDM object may have a `"bbox"` property":
+## Install
 
-- `"bbox"`: (Optional) Bounding Box of the feature represented as an array of length 4 (2D) or length 6 (3D).
+=== "pip (end users)"
 
-### Geometry Object
+    ```bash
+    pip install mudm
+    ```
 
-A geometry object is a JSON object where the `type` member's value is one of the following strings: `"Point"`, `"MultiPoint"`, `"LineString"`, `"MultiLineString"`, `"Polygon"`, `"Rectangle"`, `"MultiPolygon"`, or `"GeometryCollection"`.
+=== "uv (projects)"
 
-Each geometry object MUST have a `"coordinates"` member with an array value. The structure of the coordinates array varies with the geometry type.  The innermost point coordinates array MUST contain two or three (if 3D) numbers representing the X and Y (and Z) coordinates of the point in the image. These coordinates follow the same order as the axes in [Multiscale object](#multiscale-object). Please note that these coordinates differ from the GeoJSON specification, where the order is longitude, latitude, and optionally altitude. If no multiscale object is defined, the default coordinate system is assumed to be the same as the image coordinate system, using cartesian coordinates and pixels as units, with the origin at the top left corner of the image, and the x-axis pointing to the right and the y-axis pointing down. The z-axis points into the image, with the origin at the top left corner of the image.
+    ```bash
+    uv add mudm
+    ```
 
-- **Point**:  Must be a single set of point coordinates. A “Point” Geometry may have a radius, if representing a circular object, with the value in pixels, specified as a member `“radius”` of the Geometry object.
-- **MultiPoint**: The coordinates array must be an array of point coordinates.
-- **LineString**: The coordinates array must be an array of two or more point coordinates forming a continuous line. A “LineString” Geometry may have a radius, with the value in pixels, specified as a member “radius” of the Geometry object.
-- **MultiLineString**: The coordinates array must be an array of LineString coordinate arrays.
-- **Polygon**: The coordinates array must be an array of linear ring point coordinate arrays, where the first linear ring represents the outer boundary and any additional rings represent holes within the polygon.
-    - A subtype of “Polygon” is the “Rectangle” geometry: A polygon with an array of four 2D point coordinates representing the corners of the rectangle in a counterclockwise order. It has the property subtype with the value `“Rectangle”`.
-- **MultiPolygon**: The coordinates array must be an array of Polygon coordinate arrays.
+`mudm` is pure Python with minimal dependencies and no Rust or compiled component. See [Installation](installation.md) for supported Python versions and details.
 
-#### 3D Geometry Types
+## 30-second example
 
-muDM supports 3D mesh geometries based on ISO 19107, enabling representation of complex 3D structures such as neurons, organelles, and tissue surfaces.
+Build a small feature collection, validate it against the muDM root model, and serialize it back to JSON:
 
-- **PolyhedralSurface**: A closed surface mesh consisting of polygonal faces. The coordinates array must be an array of Polygon coordinate arrays, where each polygon represents a face of the surface. Each face follows the same structure as a Polygon (a list of linear rings of 3D positions). Must have at least one face.
-- **TIN** (Triangulated Irregular Network): A triangle mesh surface. Each face must be a single closed ring of exactly 4 positions (3 vertices + repeated first vertex to close the ring). Must have at least one face. This is the primary geometry type used for tiled 3D mesh data.
+```python
+from mudm import MuDM, MuDMFeature, MuDMFeatureCollection
 
-### GeometryCollection
+# A single annotation: a point labelled "nucleus", classified as a cell.
+feature = MuDMFeature(
+    type="Feature",
+    geometry={"type": "Point", "coordinates": [120.5, 88.0]},
+    properties={"label": "nucleus"},
+    featureClass="cell",
+)
 
-A GeometryCollection is an array of geometries (Point, multipoint, LinesString, MultiLineString, Polygon, MultiPolygon). It is possible for this array to be empty.
+# Group features into a collection.
+collection = MuDMFeatureCollection(
+    type="FeatureCollection",
+    features=[feature],
+)
 
-### Feature Object
+# Validate the whole document against the muDM root model.
+doc = MuDM.model_validate(collection.model_dump())
 
-A feature object represents a spatially bounded entity associated with properties specific to that entity. A feature object is a JSON object with the following members, required unless otherwise noted:
+# Serialize back to the wire format (camelCase fields like featureClass).
+print(doc.model_dump_json(exclude_none=True, indent=2))
+```
 
-- `"type"`: A string with the value `"Feature"`.
-- `"geometry"`: A geometry object as defined in the section above or a JSON null value.
-- `"properties"`: (Optional) A JSON object containing properties and metadata specific to the feature, or a JSON null value. It consists of key-value pairs, where the key is a string and the value is a any JSON value. The value may be a string, number, array, object.
-- `"id"`: (Optional) A unique identifier for this feature.
-- `"ref"`: (Optional) A reference to an external resource, e.g. URI to a zarr structure, e.g. "s3://zarr-demo/store/my_array.zarr".
-- `"parentId"`: (Optional) A reference to the parent feature, e.g. the id of the feature that this feature is a part of.
-- `"featureClass"`: (Optional) A string indicating the class of the feature, e.g. "cell", "nucleus", "mitochondria", etc.
+This prints a document that is, by construction, also a valid GeoJSON `FeatureCollection` — the only addition here is the optional `featureClass` field.
 
-#### Special Feature Objects
+!!! tip "Validating data you already have"
+    If you have a dict or JSON loaded from disk, validate it directly with `MuDM.model_validate(data)` (or `MuDMFeatureCollection.model_validate(data)`). See [Validation](guides/validation.md) for error handling and strictness.
 
-- **Image**: An image MUST have the following key-value pairs in its “properties” object:
+## Where to next
 
-    - `"type"`: A string with the value “Image”
-    - `"URI"`: A string with the image URI, e.g. “./image_1.tif"
-    An Image MUST also have a geometry object (as its “geometry” member) of type "Polygon", subtype “Rectangle”, indicating the shape of the image. An Image may have the following additional key-value pairs in its “properties” object:
-    - `"correction"`: A list of coordinates indicating the relative correction of the image, e.g. `[1, 2]` indicating a correction of 1 units in the x direction and 2 units in the y direction, with units as defined by the coordinate system. If the coordinate system is not defined, the units are pixels.
-
-### FeatureCollection Object
-
-A FeatureCollection object is a JSON object representing a collection of feature objects. A FeatureCollection object has a member with the name `"features"`. The value of `"features"` is a JSON array. Each element of the array is a Feature object as defined above. It is possible for this array to be empty. Additionally, it may have the following members:
-
-- `"properties"`: (Optional) A JSON object containing properties and metadata specific to the feature collection, and which apply to all features of the collection, or a JSON null value. It has the same structure as the `"properties"` member of a Feature object.
-
-#### Special FeatureCollection Objects
-
-- **StitchingVector**: Represents a stitching vector, and MUST have the following key-value pairs in its “properties” object:
-    - `"type"`: A string with the value “StitchingVector”
-
-    Any object of a StitchingVector “features” array MUST be an “Image” special type of features object.
+- **New here?** Start with [Installation](installation.md), then [Getting Started](getting-started.md).
+- **The standard:** read the formal [Specification](specification.md) — object types, fields, and the GeoJSON relationship.
+- **Guides:** browse the [Guides index](guides/index.md), or jump to [Examples](guides/examples.md), [Metadata & Properties](guides/metadata.md), [Ontology Vocabularies](guides/vocabularies.md), [Coordinate Transforms](guides/transforms.md), [Spatial Layout](guides/layout.md), [Tile Metadata](guides/tiles.md), [Validation](guides/validation.md), and [Provenance & Traceability](guides/provenance.md).
+- **Reference:** the [Reference index](reference/index.md) and the [Core data-model API](reference/models.md).
+- **Processing your data?** Tiling pipelines, converters, and visualization live in the separate `mudm-tools` package — see its [documentation site](https://novagenresearch.github.io/mudm-tools/) (e.g. [2D tiling](https://novagenresearch.github.io/mudm-tools/guides/2d-tiling/), [3D tiling](https://novagenresearch.github.io/mudm-tools/guides/3d-tiling/), [converters](https://novagenresearch.github.io/mudm-tools/guides/converters/)).
+- **About:** project background and the [MIT license](license.md) on the [About](about.md) page.
