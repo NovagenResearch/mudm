@@ -9,7 +9,7 @@ from .model import (  # noqa: F401
     OntologyTerm,
     Vocabulary,
 )
-from .tilemodel import TileJSON, TileModel, TileLayer  # noqa: F401
+from .tilemodel import TileJSON, TileModel, TileLayer, Asset  # noqa: F401
 from .tilemodel import PyramidEntry, PyramidJSON  # noqa: F401
 from .tilemodel import (  # noqa: F401
     Multiscale,
