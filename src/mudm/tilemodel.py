@@ -1,6 +1,6 @@
 from typing import Annotated, List, Optional, Union, Dict, Literal
 from enum import StrEnum
-from pydantic import BaseModel, AnyUrl, conlist, RootModel
+from pydantic import BaseModel, AnyUrl, conlist, RootModel, ConfigDict
 from pydantic import Field, StrictStr, field_validator, model_validator
 from pathlib import Path
 
@@ -24,7 +24,12 @@ class TileLayer(BaseModel):
             The descriptions of the fields.
         vocabularies (Optional[Dict[str, Vocabulary]]):
             Ontology vocabularies mapping property values to formal terms.
+
+    Extra members are allowed so emitters may attach a derived schema.org/
+    Croissant field projection or other foreign metadata.
     """
+
+    model_config = ConfigDict(extra="allow")
 
     id: str
     fields: Union[None, Dict[str, str]] = None
@@ -160,6 +165,8 @@ class Multiscale(BaseModel):
             ``coordinateTransformations``; rows must all be the same length.
     """
 
+    model_config = ConfigDict(extra="allow")
+
     axes: List[Axis]
     coordinateTransformations: Optional[List[CoordinateTransform]] = None
     transformationMatrix: Optional[List[List[float]]] = None
@@ -188,6 +195,30 @@ class Multiscale(BaseModel):
         return self
 
 
+class Asset(BaseModel):
+    """A typed, dereferenceable data asset of a tiled dataset.
+
+    Declares *how* to access a dataset's bytes: a ``role`` (e.g. ``raster``,
+    ``vector``, ``features``, ``tiles3d``, ``download``), an ``href`` (absolute
+    URL or relative path) and an optional ``media_type``. Extra members are
+    allowed so emitters may attach access hints (``partitioned``, ``range``,
+    ``bytes``, …).
+
+    Args:
+        role (str): The asset's role/kind.
+        href (str): Absolute URL or relative path to the asset.
+        media_type (Optional[str]): IANA media type of the asset.
+        title (Optional[str]): Human-readable label.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    role: str
+    href: str
+    media_type: Optional[str] = None
+    title: Optional[str] = None
+
+
 class TileModel(BaseModel):
     """A TileJSON object.
 
@@ -211,8 +242,14 @@ class TileModel(BaseModel):
             The center of the tileset.
         fillzoom (Optional[int]): The fill zoom level of the tileset.
         vector_layers (List[TileLayer]): The vector layers of the tileset.
+        assets (Optional[List[Asset]]): Typed access assets (raster, vector,
+            features, tiles3d, download, …) with absolute URLs or relative paths.
 
+    Extra members are allowed so a derived schema.org/Croissant projection
+    (``@context``, ``@type``, ``distribution`` …) can ride along in-document.
     """
+
+    model_config = ConfigDict(extra="allow")
 
     tilejson: str
     tiles: List[Union[Path, AnyUrl]]
@@ -233,6 +270,7 @@ class TileModel(BaseModel):
     vector_layers: List[TileLayer]
     multiscale: Optional[Multiscale] = None
     scale_factor: Optional[float] = None
+    assets: Optional[List[Asset]] = None
 
 
 class TileJSON(RootModel):
@@ -242,19 +280,31 @@ class TileJSON(RootModel):
 
 
 class PyramidEntry(BaseModel):
-    """One pyramid in a PyramidJSON manifest.
+    """One pyramid (dataset) in a PyramidJSON catalog, spanning 2D and 3D.
+
+    Dataset-level *semantics* (organism, technique, license, …) are deliberately
+    NOT modelled as fixed fields — they are carried as OPEN metadata (extra
+    members), keeping the model domain-agnostic; emitters adopt a documented key
+    convention so consumers see consistent, canonical values.
 
     Attributes:
         id: Unique identifier for this pyramid (used as directory name).
         label: Human-readable display label.
-        tilejson: Relative path to TileModel3D metadata file.
-        features: Relative path to MuDM FeatureCollection.
+        kind: Dataset dimensionality, ``"2d"`` or ``"3d"`` (None if unspecified).
+        tilejson: Relative path to the TileJSON descriptor (``tilejson3d.json``
+            for 3D, ``tilejson.json`` for 2D).
+        features: Relative path to the MuDM FeatureCollection (3D) or the
+            ``features.parquet`` partition root (2D).
         tiles: Total number of tile files.
         feature_count: Number of unique features.
         size_bytes: Total size on disk in bytes.
     """
+
+    model_config = ConfigDict(extra="allow")
+
     id: str
     label: Optional[str] = None
+    kind: Optional[Literal["2d", "3d"]] = None
     tilejson: str = "tilejson3d.json"
     features: Optional[str] = "features.json"
     tiles: Optional[int] = None
@@ -263,11 +313,18 @@ class PyramidEntry(BaseModel):
 
 
 class PyramidJSON(BaseModel):
-    """Root manifest listing all available pyramids.
+    """Root manifest (catalog) listing all available pyramids — 2D and 3D.
+
+    Extra members are allowed, so a thin schema.org/Croissant or OGC API-Records
+    projection (``@context``, ``conformsTo``, ``links`` …) can ride along inside
+    the same document instead of in a separate sidecar format.
 
     Attributes:
         version: Manifest format version.
         pyramids: List of pyramid entries.
     """
+
+    model_config = ConfigDict(extra="allow")
+
     version: str = "1.0"
     pyramids: List[PyramidEntry]
