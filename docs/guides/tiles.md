@@ -138,6 +138,7 @@ print(doc.root.minzoom, doc.root.maxzoom)  # 0 22  (defaults)
 | `vector_layers` | `list[TileLayer]` | — (required) | The layers carried by the tiles. |
 | `multiscale` | `Multiscale` | `None` | Physical coordinate system (see below). |
 | `scale_factor` | `float` | `None` | Linear downscale factor between adjacent zoom levels (commonly `2.0`). |
+| `assets` | `list[Asset]` | `None` | Typed, dereferenceable data assets (raster, vector, features, tiles3d, download, …) — see [Assets](#assets). |
 
 !!! warning "Length constraints"
     `bounds` must have **4 to 10** floats and `center` **3 to 6** floats. Passing the wrong count raises a `pydantic.ValidationError` — this is exactly the kind of malformed manifest the validation tests reject. See [Validation](validation.md) for how muDM tests accept valid documents and reject malformed ones.
@@ -204,6 +205,44 @@ layer = TileLayer(
 ```
 
 The `Vocabulary` and `OntologyTerm` models are documented in full on the [Ontology Vocabularies](vocabularies.md) guide.
+
+## Assets
+
+Beyond the `{zlvl}/{x}/{y}` tile templates, a `TileModel` can advertise **typed, dereferenceable data assets** through the `assets` field — a list of `Asset` objects. Where `tiles` says *how to fetch one tile*, an `Asset` points at a whole dataset artifact and says how to reach it: the full-resolution raster, a vector/features partition, a 3D Tiles entry point, or a bulk download.
+
+```python
+from mudm import TileModel, TileLayer, Asset
+
+tileset = TileModel(
+    tilejson="3.0.0",
+    tiles=["http://localhost:8080/tiles/{zlvl}/{x}/{y}.json"],
+    vector_layers=[TileLayer(id="cells", fields={"name": "string"})],
+    assets=[
+        Asset(
+            role="raster",
+            href="https://data.example.org/cortex/raster.ome.tif",
+            media_type="image/tiff; application=ome-tiff",
+            title="Full-resolution OME-TIFF",
+        ),
+        Asset(role="features", href="features.parquet",
+              media_type="application/vnd.apache.parquet"),
+        Asset(role="download", href="cortex.zip"),
+    ],
+)
+print(tileset.assets[0].role)   # raster
+```
+
+| `Asset` field | Type | Default | Meaning |
+|---------------|------|---------|---------|
+| `role` | `str` | — (required) | The asset's role/kind, e.g. `"raster"`, `"vector"`, `"features"`, `"tiles3d"`, `"download"`. |
+| `href` | `str` | — (required) | Absolute URL or relative path to the asset. |
+| `media_type` | `str` | `None` | IANA media type of the asset (e.g. `"image/tiff"`). |
+| `title` | `str` | `None` | Human-readable label. |
+
+!!! tip "Per-asset access hints"
+    `Asset` allows extra members, so an emitter may attach access hints such as
+    `partitioned`, `range`, or `bytes` alongside the four typed fields above —
+    see [Foreign members](#foreign-members).
 
 ## Coordinate systems
 
@@ -315,6 +354,7 @@ print(manifest.pyramids[1].features)  # features.json    (default)
 |----------------------|------|---------|---------|
 | `id` | `str` | — (required) | Unique identifier, used as the directory name. |
 | `label` | `str` | `None` | Human-readable display label. |
+| `kind` | `"2d" \| "3d"` | `None` | Dataset dimensionality (`None` if unspecified). |
 | `tilejson` | `str` | `"tilejson3d.json"` | Relative path to the tile metadata file. |
 | `features` | `str` | `"features.json"` | Relative path to the muDM `FeatureCollection`. |
 | `tiles` | `int` | `None` | Total number of tile files. |
@@ -325,6 +365,33 @@ print(manifest.pyramids[1].features)  # features.json    (default)
 
 !!! note "GeoJSON compatibility"
     The `features` file referenced by each pyramid is a standard muDM `FeatureCollection`, which is itself valid GeoJSON. Any GeoJSON is valid muDM, and any muDM document is valid GeoJSON — see the [Core data-model reference](../reference/models.md) for the feature models.
+
+## Foreign members
+
+Every model on this page — `TileModel`, `TileLayer`, `Multiscale`, `Asset`, `PyramidJSON`, and `PyramidEntry` — **allows extra members**. Anything you pass that is not a declared field is preserved on the object and round-trips through `model_dump()` / `model_validate()` untouched, exactly the way [foreign members](../specification.md#mudm-object) work on muDM features.
+
+This lets a producer project a tile or pyramid manifest into a companion metadata vocabulary **in the same document**, rather than emitting a separate sidecar file. The primary use is a [schema.org](https://schema.org/) / [Croissant](https://mlcommons.org/croissant/) projection — `@context`, `@type`, `distribution`, `conformsTo`, … — so a `PyramidJSON` catalog is simultaneously a valid muDM manifest and a discoverable dataset record:
+
+```python
+from mudm import PyramidJSON, PyramidEntry
+
+manifest = PyramidJSON(
+    pyramids=[PyramidEntry(id="dapi", label="DAPI channel", kind="2d")],
+    # foreign members: a schema.org / Croissant projection riding along
+    **{
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "name": "Mouse cortex section 12",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+    },
+)
+
+dumped = manifest.model_dump()
+print(dumped["@type"])                 # Dataset
+print(dumped["pyramids"][0]["kind"])   # 2d
+```
+
+Consumers that only understand muDM ignore the extra members; consumers that understand schema.org/Croissant can index the dataset without a separate manifest. `Asset` allows extra members too, so per-asset access hints (`partitioned`, `range`, `bytes`, …) travel next to `role` / `href`.
 
 ## Where the tiling happens
 
@@ -341,6 +408,8 @@ Everything above is metadata. To actually generate pyramids — slicing a `Featu
 ::: mudm.tilemodel.TileModel
 
 ::: mudm.tilemodel.TileLayer
+
+::: mudm.tilemodel.Asset
 
 ::: mudm.tilemodel.Multiscale
 
