@@ -24,7 +24,7 @@ the table below to jump straight to each module's autodoc block.
 | Module | Public surface | API reference |
 | --- | --- | --- |
 | `mudm.transforms` | `AffineTransform`, `VoxelCoordinateSystem`, `apply_transform`, `translate_geometry`, `voxel_to_physical`, `physical_to_voxel` | [Coordinate Transforms API](../guides/transforms.md#api-reference) |
-| `mudm.tilemodel` | `TileJSON`, `TileModel`, `TileLayer`, `Multiscale`, `Axis`, `PyramidJSON`, `PyramidEntry` | [Tile Metadata API](../guides/tiles.md#api-reference) |
+| `mudm.tilemodel` | `TileJSON`, `TileModel`, `TileLayer`, `Asset`, `Multiscale`, `Axis`, `PyramidJSON`, `PyramidEntry` | [Tile Metadata API](../guides/tiles.md#api-reference) |
 | `mudm.layout` | `geometry_bounds`, `apply_layout` | [Spatial Layout API](../guides/layout.md#api-reference) |
 | `mudm.model` (ontology) | `OntologyTerm`, `Vocabulary` | [Vocabularies API](../guides/vocabularies.md#api-reference) |
 | `mudm.provenance` | `Artifact`, `ArtifactCollection`, `Workflow`, `WorkflowProvenance`, `WorkflowCollection`, `MuDMLink` | [Provenance API](../guides/provenance.md#api-reference) |
@@ -66,7 +66,7 @@ from mudm import (
 )
 
 # Tile metadata — see guides/tiles.md
-from mudm.tilemodel import TileJSON, TileModel, TileLayer, PyramidEntry, PyramidJSON
+from mudm.tilemodel import TileJSON, TileModel, TileLayer, Asset, PyramidEntry, PyramidJSON
 
 # Coordinate transforms — see guides/transforms.md
 from mudm.transforms import (

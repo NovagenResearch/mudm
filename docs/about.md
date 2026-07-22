@@ -24,7 +24,7 @@ This repository is the **core data model package** — Pydantic models for valid
 | Spatial layout | Bounds computation and grid layout helpers for arranging feature collections. |
 | Ontology vocabularies | `OntologyTerm` and `Vocabulary` for mapping property values to formal ontology terms. |
 | Provenance tracking | `Workflow`, `Artifact`, and `MuDMLink` models for data lineage. |
-| Tile metadata | TileJSON 3.0.0 models (`TileModel`, `TileJSON`, `TileLayer`, `PyramidJSON`) for describing tiled datasets. |
+| Tile metadata | TileJSON 3.0.0 models (`TileModel`, `TileJSON`, `TileLayer`, `Asset`, `PyramidJSON`) for describing tiled datasets, including typed data assets. |
 
 ## A first look
 

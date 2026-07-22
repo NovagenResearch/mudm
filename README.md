@@ -45,7 +45,7 @@ from mudm import TileJSON, TileModel
 
 - **Model validation**: MuDM, MuDMFeature, MuDMFeatureCollection, GeoJSON
 - **3D geometry types**: TIN, PolyhedralSurface, TiledGeometry
-- **Tile metadata**: TileJSON, TileModel, TileLayer, PyramidJSON
+- **Tile metadata**: TileJSON, TileModel, TileLayer, Asset, PyramidJSON
 - **Coordinate transforms**: AffineTransform, VoxelCoordinateSystem
 - **Provenance tracking**: Workflow, Artifact, MuDMLink
 

@@ -227,7 +227,7 @@ Now that you've round-tripped data through the core model, go deeper:
 - **[Examples](guides/examples.md)** — a worked-example gallery you can copy from.
 - **[Metadata & Properties](guides/metadata.md)** — modelling free-form and structured metadata on features.
 - **[Coordinate Transforms](guides/transforms.md)** — affine transforms and voxel/physical coordinate conversions.
-- **[Tile Metadata](guides/tiles.md)** — tile metadata models (`TileJSON`, `TileModel`, `PyramidJSON`) for large pyramidal images.
+- **[Tile Metadata](guides/tiles.md)** — tile metadata models (`TileJSON`, `TileModel`, `Asset`, `PyramidJSON`) for large pyramidal images.
 - **[Provenance & Traceability](guides/provenance.md)** — tracking workflows and artifacts with `Workflow` and `Artifact`.
 - **[Validation](guides/validation.md)** — validating documents and interpreting errors.
 - **[Core data-model API](reference/models.md)** — the full Pydantic model reference.

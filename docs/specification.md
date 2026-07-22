@@ -251,6 +251,13 @@ ms = Multiscale(
 print([a.name for a in ms.axes])  # ['x', 'y', 'z']
 ```
 
+## Tile and pyramid metadata
+
+Large, pyramidal datasets are described by tile metadata (`mudm.tilemodel.TileModel`, serialized as TileJSON) and, for a catalog of several pyramids, a manifest (`mudm.tilemodel.PyramidJSON`). The formal, field-by-field tile specification is maintained on the producer/consumer side in the [mudm-tools TileJSON reference](https://novagenresearch.github.io/mudm-tools/reference/tilejson/); the muDM guide has a worked walkthrough in [Tile Metadata](guides/tiles.md). Two points are normative here:
+
+- **Assets.** A `TileModel` MAY carry an `assets` array of typed, dereferenceable data assets. Each asset MUST have a `role` (e.g. `"raster"`, `"vector"`, `"features"`, `"tiles3d"`, `"download"`) and an `href` (an absolute URL or a relative path), and MAY have a `media_type` and a `title`.
+- **Foreign members.** Like every muDM object, the tile and pyramid models MAY carry [foreign members](#mudm-object) and MUST ignore ones they do not understand. This is what lets a manifest embed a schema.org / Croissant projection (`@context`, `@type`, `distribution`, …) in-document instead of in a separate sidecar.
+
 ## Ontology Vocabularies
 
 Properties on features are free-form, but muDM lets you bind property values to formal ontology terms with a `vocabularies` member. This member may appear on a Feature and on a FeatureCollection.

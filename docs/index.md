@@ -16,7 +16,7 @@
 | Ontology vocabularies | `mudm.model.Vocabulary`, `mudm.model.OntologyTerm` | [Ontology Vocabularies](guides/vocabularies.md) |
 | Coordinate transforms (affine, voxel↔physical) | `mudm.transforms` (`AffineTransform`, `VoxelCoordinateSystem`) | [Coordinate Transforms](guides/transforms.md) |
 | Spatial layout (bounds, arranging features) | `mudm.layout` (`geometry_bounds`, `apply_layout`) | [Spatial Layout](guides/layout.md) |
-| Tile & pyramid metadata | `mudm.tilemodel` (`TileJSON`, `TileModel`, `PyramidJSON`) | [Tile Metadata](guides/tiles.md) |
+| Tile & pyramid metadata | `mudm.tilemodel` (`TileJSON`, `TileModel`, `Asset`, `PyramidJSON`) | [Tile Metadata](guides/tiles.md) |
 | Provenance & data lineage | `mudm.provenance` (`Workflow`, `Artifact`, `MuDMLink`) | [Provenance & Traceability](guides/provenance.md) |
 
 !!! tip "Where processing happens"
