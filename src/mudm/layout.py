@@ -7,10 +7,8 @@ across all exporters (glTF, Neuroglancer, Arrow/Parquet).
 
 from __future__ import annotations
 
-import copy
 from typing import Any
 
-from geojson_pydantic import Polygon, MultiPolygon
 
 from .model import (
     MuDMFeature,
@@ -28,6 +26,7 @@ Offset3 = tuple[float, float, float]
 # ---------------------------------------------------------------------------
 # Bounding box computation
 # ---------------------------------------------------------------------------
+
 
 def _collect_xyz_from_coords(
     coords: Any,
@@ -98,6 +97,7 @@ def geometry_bounds(geom: Any) -> Bounds | None:
 # ---------------------------------------------------------------------------
 # Layout algorithms
 # ---------------------------------------------------------------------------
+
 
 def _row_layout(
     bounds: list[Bounds | None],
@@ -180,16 +180,8 @@ def _grid_layout(
 
     # Grid dimensions — values are cell counts, unlimited when None
     cols = grid_max_x if grid_max_x is not None else n
-    rows = (
-        grid_max_y
-        if grid_max_y is not None
-        else max(1, -(-n // cols))
-    )
-    layers = (
-        grid_max_z
-        if grid_max_z is not None
-        else max(1, -(-n // (cols * rows)))
-    )
+    rows = grid_max_y if grid_max_y is not None else max(1, -(-n // cols))
+    layers = grid_max_z if grid_max_z is not None else max(1, -(-n // (cols * rows)))
 
     capacity = cols * rows * layers
     if n > capacity:
@@ -222,11 +214,13 @@ def _grid_layout(
         feat_cy = (b[1] + b[4]) / 2 if b else 0.0
         feat_cz = (b[2] + b[5]) / 2 if b else 0.0
 
-        offsets.append((
-            target_cx - feat_cx,
-            target_cy - feat_cy,
-            target_cz - feat_cz,
-        ))
+        offsets.append(
+            (
+                target_cx - feat_cx,
+                target_cy - feat_cy,
+                target_cz - feat_cz,
+            )
+        )
 
     return offsets
 
@@ -251,9 +245,7 @@ def compute_collection_offsets(
         return [(0.0, 0.0, 0.0)] * n
 
     has_grid = (
-        grid_max_x is not None
-        or grid_max_y is not None
-        or grid_max_z is not None
+        grid_max_x is not None or grid_max_y is not None or grid_max_z is not None
     )
 
     # No layout requested — keep coordinates as-is
@@ -262,13 +254,12 @@ def compute_collection_offsets(
 
     effective_spacing = spacing if spacing is not None else 0.0
 
-    bounds = [
-        geometry_bounds(f.geometry) if f.geometry else None
-        for f in features
-    ]
+    bounds = [geometry_bounds(f.geometry) if f.geometry else None for f in features]
 
     if has_grid:
-        return _grid_layout(bounds, effective_spacing, grid_max_x, grid_max_y, grid_max_z, n)
+        return _grid_layout(
+            bounds, effective_spacing, grid_max_x, grid_max_y, grid_max_z, n
+        )
     return _row_layout(bounds, effective_spacing)
 
 
@@ -287,7 +278,11 @@ def apply_layout(
     """
     features = list(collection.features)
     offsets = compute_collection_offsets(
-        features, spacing, grid_max_x, grid_max_y, grid_max_z,
+        features,
+        spacing,
+        grid_max_x,
+        grid_max_y,
+        grid_max_z,
     )
 
     new_features = []
