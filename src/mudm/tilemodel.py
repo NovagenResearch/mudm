@@ -177,9 +177,7 @@ class Multiscale(BaseModel):
         cls, v: Optional[List[List[float]]]
     ) -> Optional[List[List[float]]]:
         if v is not None and len({len(row) for row in v}) > 1:
-            raise ValueError(
-                "transformationMatrix rows must all have the same length"
-            )
+            raise ValueError("transformationMatrix rows must all have the same length")
         return v
 
     @model_validator(mode="after")

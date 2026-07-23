@@ -76,9 +76,8 @@ class VoxelCoordinateSystem(BaseModel):
 # Helper functions
 # ---------------------------------------------------------------------------
 
-def _transform_position(
-    pos: tuple, matrix: List[List[float]]
-) -> tuple:
+
+def _transform_position(pos: tuple, matrix: List[List[float]]) -> tuple:
     """Apply a 4x4 affine matrix to a single position (2D or 3D).
 
     A 2D position is transformed in-plane and stays 2D: the matrix Z row
@@ -111,6 +110,7 @@ def _transform_coords(coords, matrix: List[List[float]]):
 # 3D type transform helpers
 # ---------------------------------------------------------------------------
 
+
 def _transform_tin(geom: TIN, matrix: List[List[float]]) -> TIN:
     """Transform nested polygon coordinates in a TIN, preserving `tiles`."""
     new_coords = _transform_coords(list(geom.coordinates), matrix)
@@ -130,8 +130,15 @@ def _transform_polyhedral(
 # ---------------------------------------------------------------------------
 
 Geometry = Union[
-    Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon,
-    GeometryCollection, TIN, PolyhedralSurface,
+    Point,
+    MultiPoint,
+    LineString,
+    MultiLineString,
+    Polygon,
+    MultiPolygon,
+    GeometryCollection,
+    TIN,
+    PolyhedralSurface,
 ]
 
 
@@ -157,18 +164,20 @@ def apply_transform(geometry: Geometry, transform: AffineTransform) -> Geometry:
     if isinstance(geometry, PolyhedralSurface):
         return _transform_polyhedral(geometry, matrix)
     if isinstance(geometry, GeometryCollection):
-        return geometry.model_copy(update={
-            "geometries": [apply_transform(g, transform) for g in geometry.geometries]
-        })
+        return geometry.model_copy(
+            update={
+                "geometries": [
+                    apply_transform(g, transform) for g in geometry.geometries
+                ]
+            }
+        )
 
     # GeoJSON types — all have .coordinates
     new_coords = _transform_coords(list(geometry.coordinates), matrix)
     return type(geometry)(type=geometry.type, coordinates=new_coords)
 
 
-def translate_geometry(
-    geometry: Geometry, dx: float, dy: float, dz: float
-) -> Geometry:
+def translate_geometry(geometry: Geometry, dx: float, dy: float, dz: float) -> Geometry:
     """Translate a geometry by (dx, dy, dz).
 
     Convenience wrapper that builds a translation matrix and calls
@@ -189,6 +198,7 @@ def translate_geometry(
 # ---------------------------------------------------------------------------
 # Coordinate system conversions
 # ---------------------------------------------------------------------------
+
 
 def voxel_to_physical(
     coords: Tuple[float, float, float],

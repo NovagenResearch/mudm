@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mudm"
-version = "0.6.3"
+version = "0.6.4"
 description = "muDM (micro Data Model) — a GeoJSON-inspired data model for microscopy spatial data."
 readme = "README.md"
 authors = [

@@ -1,7 +1,14 @@
 """MuDM and GeoJSON models, defined manually using pydantic."""
 
 from typing import Any, List, Literal, Optional, Tuple, Union, Dict
-from pydantic import BaseModel, StrictInt, StrictStr, RootModel, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    StrictInt,
+    StrictStr,
+    RootModel,
+    field_validator,
+    model_validator,
+)
 from .provenance import Workflow
 from .provenance import WorkflowCollection
 from .provenance import Artifact
@@ -11,15 +18,14 @@ from geojson_pydantic import Point, MultiPoint, LineString, MultiLineString
 from geojson_pydantic import Polygon, MultiPolygon
 from geojson_pydantic.types import (
     Position,
-    LinearRing,
     PolygonCoords,
-    MultiPolygonCoords,
 )
 
 
 # ---------------------------------------------------------------------------
 # Helper: extract all 3D positions from nested coordinate structures
 # ---------------------------------------------------------------------------
+
 
 def _iter_positions(coords: list) -> list[Position]:
     """Recursively flatten nested coordinate arrays to a list of positions."""
@@ -82,12 +88,14 @@ def _centroid3d(coords: list) -> Optional[Tuple[float, float, float]]:
 # 3D Geometry Types
 # ---------------------------------------------------------------------------
 
+
 class TiledGeometry(BaseModel):
     """Base for geometry types that reference external tiled data.
 
     When data is stored in external tiles, coordinates may be empty and
     the tiles field lists the spatial tile identifiers.
     """
+
     tiles: Optional[List[str]] = None
 
 
@@ -168,10 +176,10 @@ class TIN(TiledGeometry):
         return _centroid3d(self.coordinates)
 
 
-
 # ---------------------------------------------------------------------------
 # Ontology Vocabulary Support
 # ---------------------------------------------------------------------------
+
 
 class OntologyTerm(BaseModel):
     """A reference to a formal ontology term.
@@ -181,6 +189,7 @@ class OntologyTerm(BaseModel):
         label: Human-readable label (e.g. "pyramidal neuron").
         description: Optional longer description of the term.
     """
+
     uri: str
     label: Optional[str] = None
     description: Optional[str] = None
@@ -194,6 +203,7 @@ class Vocabulary(BaseModel):
         description: Optional description of this vocabulary.
         terms: Mapping from property values to ontology terms.
     """
+
     namespace: Optional[str] = None
     description: Optional[str] = None
     terms: Dict[str, OntologyTerm]
